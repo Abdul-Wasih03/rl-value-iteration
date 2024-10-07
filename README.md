@@ -122,7 +122,7 @@ def value_iteration(P, gamma=1.0, theta=1e-10):
 V_best_v, pi_best_v = value_iteration(P, gamma=0.99)
 
 # Printing the policy
-print("Name: Meetha Prabhu      Register Number: 212222240065")
+print("Name: H.Syed Abdul Wasih   Register Number: 212221240057")
 print('Optimal policy and state-value function (VI):')
 print_policy(pi_best_v, P)
 
