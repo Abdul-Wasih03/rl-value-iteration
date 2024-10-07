@@ -146,4 +146,4 @@ print_state_value_function(V_best_v, P, prec=4)
 
 
 ## RESULT:
-Thus the program to find th optimal policy using value iteration is implemented successfully
+Thus the program to find the optimal policy using value iteration is implemented successfully
