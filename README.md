@@ -1,60 +1,149 @@
 # VALUE ITERATION ALGORITHM
 
 ## AIM
-To develop a Python program to find the optimal policy for the given MDP using the value iteration algorithm.
+The aim of the program is to find the best way for an agent to navigate a grid environment by using the Value Iteration algorithm. 
+
 ## PROBLEM STATEMENT
-The FrozenLake environment in OpenAI Gym is a gridworld problem that challenges reinforcement learning agents to navigate a slippery terrain to reach a goal state while avoiding hazards. Note that the environment is closed with a fence, so the agent cannot leave the gridworld.
+The goal is to determine the optimal policy for an agent navigating through a grid environment, where each state represents a grid cell, and actions move the agent in one of four directions (up, down, left, or right). The task is to maximize the expected reward, leading the agent to the goal state while avoiding obstacles.
 
 ## POLICY ITERATION ALGORITHM
-Value iteration is a method of computing an optimal MDP policy and its value.
-It begins with an initial guess for the value function, and iteratively updates it towards the optimal value function, according to the Bellman optimality equation.
-The algorithm is guaranteed to converge to the optimal value function, and in the process of doing so, also converges to the optimal policy.
-The algorithm is as follows:
-
-Initialize the value function V(s) arbitrarily for all states s.
-Repeat until convergence:
-Initialize aaction-value function Q(s, a) arbitrarily for all states s and actions a.
-For all the states s and all the action a of every state:
-Update the action-value function Q(s, a) using the Bellman equation.
-Take the value function V(s) to be the maximum of Q(s, a) over all actions a.
-Check if the maximum difference between Old V and new V is less than theta, where theta is a small positive number that determines the accuracy of estimation.
-If the maximum difference between Old V and new V is greater than theta, then
-Update the value function V with the maximum action-value from Q.
-Go to step 2.
-The optimal policy can be constructed by taking the argmax of the action-value function Q(s, a) over all actions a.
-Return the optimal policy and the optimal value function.
+### Step 1: 
+Set the value of each state to 0 (initial guess).
+### Step 2: 
+Look at all the actions you can take from that state (like moving up, down, left, or right).
+### Step 3: 
+Calculate the expected value of each action (i.e., how good that action is based on its possible results).
+### Step 4: 
+Pick the action that gives the highest value and update the value of the state with that number.
+### Step 5: 
+Keep updating the values for all states until the difference between the old and new values is very small 
+### Step 6: 
+Once the values have stabilized, go through each state again and pick the action that leads to the highest value. This gives you the optimal action (policy) for each state.
 
 ## VALUE ITERATION FUNCTION
-### Name: H.Syed Abdul Wasih
-### Register Number:212221240057
+### Name: Syed Abdul Wasih H
+### Register Number: 212221240057
 
-```py
-def value_iteration(P, gamma=0.9, theta=1e-8):  # Adjust gamma and theta
-    V = np.zeros(len(P), dtype=np.float64)
-    while True:
-        Q = np.zeros((len(P), len(P[0])), dtype=np.float64)
-        for s in range(len(P)):
-            for a in range(len(P[s])):
-                for prob, next_state, reward, done in P[s][a]:
-                    Q[s][a] += prob * (reward + gamma * V[next_state] * (not done))
-        delta = np.max(np.abs(V - np.max(Q, axis=1)))
-        if delta < theta:
-            break
-        V = np.max(Q, axis=1)
-    pi = lambda s: np.argmax(Q[s])
-    return V, pi
-
+#### Gym Walk Installation
 ```
 
+pip install git+https://github.com/mimoralea/gym-walk#egg=gym-walk
+
+import warnings ; warnings.filterwarnings('ignore')
+
+import gym, gym_walk
+import numpy as np
+
+import random
+import warnings
+
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+np.set_printoptions(suppress=True)
+random.seed(123); np.random.seed(123)
+```
+
+#### Printing Functions
+```
+def print_policy(pi, P, action_symbols=('<', 'v', '>', '^'), n_cols=4, title='Policy:'):
+    print(title)
+    arrs = {k:v for k,v in enumerate(action_symbols)}
+    for s in range(len(P)):
+        a = pi(s)
+        print("| ", end="")
+        if np.all([done for action in P[s].values() for _, _, _, done in action]):
+            print("".rjust(9), end=" ")
+        else:
+            print(str(s).zfill(2), arrs[a].rjust(6), end=" ")
+        if (s + 1) % n_cols == 0: print("|")
+
+def print_state_value_function(V, P, n_cols=4, prec=3, title='State-value function:'):
+    print(title)
+    for s in range(len(P)):
+        v = V[s]
+        print("| ", end="")
+        if np.all([done for action in P[s].values() for _, _, _, done in action]):
+            print("".rjust(9), end=" ")
+        else:
+            print(str(s).zfill(2), '{}'.format(np.round(v, prec)).rjust(6), end=" ")
+        if (s + 1) % n_cols == 0: print("|")
+```
+```
+def probability_success(env, pi, goal_state, n_episodes=100, max_steps=200):
+    random.seed(123); np.random.seed(123) ; env.seed(123)
+    results = []
+    for _ in range(n_episodes):
+        state, done, steps = env.reset(), False, 0
+        while not done and steps < max_steps:
+            state, _, done, h = env.step(pi(state))
+            steps += 1
+        results.append(state == goal_state)
+    return np.sum(results)/len(results)
+
+def mean_return(env, pi, n_episodes=100, max_steps=200):
+    random.seed(123); np.random.seed(123) ; env.seed(123)
+    results = []
+    for _ in range(n_episodes):
+        state, done, steps = env.reset(), False, 0
+        results.append(0.0)
+        while not done and steps < max_steps:
+            state, reward, done, _ = env.step(pi(state))
+            results[-1] += reward
+            steps += 1
+    return np.mean(results)
+```
+#### Creating Frozen lake environnent
+```
+
+envdesc  = ['SFFF','FHFH','FFFH', 'GFFF']
+env = gym.make('FrozenLake-v1',desc=envdesc)
+init_state = env.reset()
+goal_state = 12
+P = env.env.P
+
+P
+```
+#### Value Iteration
+```
+def value_iteration(P, gamma=1.0, theta=1e-10):
+    V = np.zeros(len(P), dtype=np.float64)
+    while True:
+      Q= np.zeros((len(P), len(P[0])), dtype=np.float64)
+      for s in range((len(P))):
+        for a in range(len(P[s])):
+          for prob, next_state, reward, done in P[s][a]:
+            Q[s][a]+=prob*(reward+gamma*V[next_state]*(not done))
+      if np.max(np.abs(V - np.max(Q, axis=1))) < theta:
+        break
+      V= np.max(Q, axis=1)
+      pi=lambda s:{s:a for s, a in enumerate(np.argmax(Q, axis=1))} [s]
+    return V, pi
+
+# Finding the optimal policy
+V_best_v, pi_best_v = value_iteration(P, gamma=0.99)
+
+# Printing the policy
+print("Name: Meetha Prabhu      Register Number: 212222240065")
+print('Optimal policy and state-value function (VI):')
+print_policy(pi_best_v, P)
+
+# printing the success rate and the mean return
+print('Reaches goal {:.2f}%. Obtains an average undiscounted return of {:.4f}.'.format(
+    probability_success(env, pi_best_v, goal_state=goal_state)*100,
+    mean_return(env, pi_best_v)))
+
+
+# printing the state value function
+print_state_value_function(V_best_v, P, prec=4)
+```
+
+
 ## OUTPUT:
-### Optimal Policy
-![1](https://github.com/user-attachments/assets/800d0c1b-0f4a-4f63-b659-f55b606d8352)
 
-### Optimal Value Function
-![3](https://github.com/user-attachments/assets/1ad28a17-9036-4c1d-976c-5ff56e8bd558)
 
- ### Success rate for The Optimal Policy
-![2](https://github.com/user-attachments/assets/3dee186a-1444-4745-8759-26589ecd8106)
+![1](https://github.com/user-attachments/assets/72348a8f-59e5-4f4c-b745-e0b39fba3626)
+![2](https://github.com/user-attachments/assets/8c35c022-54e8-4245-8ec7-93e4820a8abc)
+![3](https://github.com/user-attachments/assets/845021b3-ec04-4ec4-9797-0d206167277c)
+
 
 ## RESULT:
-Thus, a Python program is developed to find the optimal policy for the given MDP using the value iteration algorithm.
+Thus the program to find th optimal policy using value iteration is implemented successfully
